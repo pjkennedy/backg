@@ -1,0 +1,362 @@
+# Hey, brah, this is one 'open source' program. Take it and enjoy, couz. This is GPL on Tuesdays and Thursdays, 
+#and MIT otherwise. Or whatevers, brah. Aloha.
+#
+# Copyright 2020 - Patrick J. Kennedy
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the "Software"), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software.
+
+# The above copyright notice need not be included brah...so, enjoy it, take it, or share it back.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED 
+# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF 
+# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# DEALINGS IN THE SOFTWARE.
+
+# filename: backg
+
+# WALLPAPER VIEWER -- great way to control the room's envinronment. Could easily be adapted into a
+# PowerPoint type application.
+#
+# This program is a fun way to download pictures and enjoy them on a large HDTV. It works both online and 
+# offline. Future versions may use the registered API features at source.unsplash.com, or it may use other
+# service providers. Look forward to seeing other ideas...so, please share your ideas, if you have good 
+# coding techniques or new features, and enjoy dakine.
+#
+# Example /home/joe/sh
+BASE_PATH="/home/joe/sh"
+
+# initalize screens
+#xrandr --output HDMI-1 --auto
+#xrandr --output eDP-1  --auto
+xrandr  --output eDP-1 --auto --rotate normal --pos 0x0 --output HDMI-1 --rotate normal --right-of eDP-1
+
+tput clear  
+
+# even or odd counter to toggle
+num=1
+audio="false"
+
+#### Query URL examples ####
+#url="https://source.unsplash.com/1600x900/?{deep%20space},{solar%20system},{big%20bang}"
+#url="https://source.unsplash.com/1600x900/?tropical,paradise,hawaii,hula"
+
+#query='mountain,hill'
+#query='tropical,paradise,hawaii,hula'
+
+query='wave,surf,pipeline%20beach,teahupoo,sunet%20beach,makapuu'
+saveToDIR='waves'
+#saveToDIR='tropical'
+#saveToDIR='volcano'
+
+mkdir -p $BASE_PATH/$saveToDIR 2> /dev/null
+
+function flipRight {
+  xrandr  --output eDP-1 --auto --rotate normal --pos 0x0 --output HDMI-1 --rotate right --right-of eDP-1 
+  #  xrandr --output  eDP-1 --auto --rotate normal
+  #  xrandr --output HDMI-1 --auto --rotate right
+
+  if [ "$audio" = "true" ]; then
+    play -n synth pl G2 pl B2 pl D3 pl G3 pl D4 pl G4 \
+    delay 0 .05 .1 .15 .2 .25 remix - fade 0 4 .1 norm -1
+  fi
+}
+
+function fix {
+  # Doesn't always fix problems...FYI.
+  # different HDTVs and cables can cause issues, such as the screen blacking out.
+  xrandr  --output eDP-1 --auto --rotate normal --pos 0x0 --output HDMI-1 --rotate normal --right-of eDP-1
+}
+
+function flipLeft {
+  # left
+  xrandr  --output eDP-1 --auto --rotate normal --pos 0x0 --output HDMI-1 --rotate left --right-of eDP-1 
+  #xrandr --output  eDP-1 --auto --rotate normal
+  #xrandr --output HDMI-1 --auto --rotate left
+
+  if [ "$audio" = "true" ]; then  
+    play -q -n synth sine F2 sine C3 remix - fade 0 4 .1 norm -4 bend 0.5,2477,2 fade 0 4.0 0.5  2> /dev/null
+  fi
+}
+
+function flipDown {
+  # invert screen
+  #xrandr --output  eDP-1 --auto --rotate normal
+  #xrandr --output HDMI-1 --auto --rotate inverted
+
+  xrandr  --output eDP-1 --auto --rotate normal --pos 0x0 --output HDMI-1 --rotate inverted --right-of eDP-1
+
+  if [ "$audio" = "true" ]; then
+    play -n synth pl C3 trim 0 1.25 repeat 4
+    #sleep 5
+  fi
+
+}
+
+function flipUp {
+  # back to normal
+  xrandr  --output eDP-1 --auto --rotate normal --pos 0x0 --output HDMI-1 --rotate normal --right-of eDP-1
+  # xrandr --output  eDP-1 --auto --rotate normal
+  # xrandr --output HDMI-1 --auto --rotate normal
+
+  if [ "$audio" = "true" ]; then  
+    play -n -c1 synth sin %-12 sin %-9 sin %-5 sin %-2 fade q 0.1 3 0.1
+  fi
+}
+
+function getMenu {
+  tput sc
+
+  cols=$( tput cols )
+  rows=$( tput lines )
+
+  tput cup 0 $((cols - 16))
+  echo "|    Menu    |"
+  tput cup 1 $((cols - 16))
+  tput cup 2 $((cols - 16))
+  echo "D - Flip Down"
+  tput cup 3 $((cols - 16))
+  echo "U - Flip Up"
+  tput cup 4 $((cols - 16))
+  echo "R - Flip Right"
+  tput cup 5 $((cols - 16))
+  echo "L - Flip Left"
+  tput cup 6 $((cols - 16))
+  echo "N - Next pic"
+  tput cup 7 $((cols - 16))
+  echo "P - Prev pic"
+  tput cup 8 $((cols - 16))
+  echo "M - Redraw menu"
+  tput cup 8 $((cols - 16))
+  echo "A - Toggle Audio"
+  tput cup 8 $((cols - 16))
+  echo "F - Fix Display"
+ 
+  tput rc
+
+}
+trap getMenu WINCH
+getMenu
+
+
+function setWallpaper() {
+    url_pic=$BASE_PATH/backg_pics/$saveToDIR/$1
+    #echo $url_pic
+    gsettings set org.gnome.desktop.background picture-uri "$url_pic"
+}
+
+function internetStatus { 
+  wget -q --spider http://google.com
+
+  if [ $? -eq 0 ]; then
+      return 0  
+      # echo "Online"
+  else
+      return 1
+      # echo "Offline"
+  fi
+}
+
+
+
+while true
+do
+# do big loop with two sub-loops
+
+##if [ $x -eq 1 ] ; then
+while true
+do
+  internetStatus
+  status=$?
+  #echo "status "  $status
+  # If offline (1), break loop and goto the next loop -- live images loop
+  if [ $status -eq 1 ]; then
+    echo "internet is down; can't do live images loop -- switching to next loop"
+    break
+  fi
+
+  current_time=$(date "+%Y.%m.%d-%H.%M.%S")
+  url="https://source.unsplash.com/1600x900/?"$query  
+
+  cd $BASE_PATH/backg_pics/$saveToDIR
+
+  curl --max-time 35 --connect-time 5 -L $url > pic.$current_time.jpg  # -s for silent
+  exit_code=$?
+  echo "curl status: " $exit_code
+  if [ $exit_code -eq 28 ]; then
+    echo "issuing continue due to cURL code 28"
+    continue
+  fi
+
+  #
+  # FYI: Don't attempt to parse ls output -->
+  # https://stackoverflow.com/questions/1447809/awk-print-9-the-last-ls-l-column-including-any-spaces-in-the-file-name
+  # http://mywiki.wooledge.org/ParsingLs
+  #  
+  file=`find pic.$current_time.jpg -maxdepth 1 -type f`
+  #file=`ls -l | tail -1 | cut -f9 -d' '`  # old way
+  echo "file: " $file  
+
+  uri='file://'$BASE_PATH'/backg_pics/'$saveToDIR/$file
+  echo "uri: " $uri
+
+  gsettings set org.gnome.desktop.background picture-uri $uri
+  sleep 60s
+
+done
+
+
+###########################################################
+### echo saved images loop for when there's no internet ###
+# using an array, we can get a fresh list of DIR entries
+shopt -s dotglob
+shopt -s nullglob
+cd $BASE_PATH/backg_pics/$saveToDIR
+array=(*.{jpg,png})
+
+i=0  #image index
+firstLoop=0
+
+while true
+do
+#for f in $BASE_PATH/backg_pics/$saveToDIR/*{.jpg,png}; do
+for f in ${array[$i]}; do
+  internetStatus
+  status=$?
+
+  arr_length=${#array[@]}
+  
+  # if online again, break saved images loop and proceed to top loop // loop 1 of 2
+  if [ $status -eq 0 ]; then
+    echo "internet is back on; breaking out of saved images loop..."
+    echo break do 1 of 2
+    break
+  fi
+  #echo "status " $status
+  
+  # test for a user input key event here;
+
+  echo Keyboard input...
+  read -rsn1 -t 5 key
+
+  if [ "$key" = "p" ]; then
+    # need to test for ZERO
+    i=$((i-1))
+    if [ "$i" -lt 0 ]; then 
+       i=$arr_length-1
+       f=${array[$i]} 
+    else
+       f=${array[$i]} 
+    fi
+
+    setWallpaper $f
+    getMenu
+    continue
+
+  fi
+
+  # next
+  if [ "$key" = "n" ]; then
+  # this part of the code needs more streamlinig and improvement
+ 
+        #echo top $i
+	if [ "$i" -eq 0 ]; then
+	   #echo zero zero zero
+           f=${array[$i]}
+           #echo First time $i
+           i=1
+
+        else
+
+           if [ "$i" -gt 0 ] && [ "$i" -lt "$arr_length" ]; then
+	     #echo Between one and length /// $i
+             f=${array[$i]}  
+	     #echo Subsequently $i and $f
+	     
+             i=$((i+1))  
+	   fi
+           if [ "$i" -eq "$arr_length" ]; then
+             #echo It is equal......... 
+             i=0	
+           fi
+
+	   #if [ "$i" -eq "$arr_length" ]; then
+           #  f=${array[$i]}  
+           #  echo At the top of the array --> $i
+
+           #  i=0
+             #continue
+	   #fi
+        fi
+
+    setWallpaper $f
+    getMenu
+    continue
+  fi
+
+  if [ "$key" = "d" ]; then
+    flipDown
+  fi
+  if [ "$key" = "u" ]; then
+    flipUp
+  fi
+  if [ "$key" = "l" ]; then
+    flipLeft
+  fi
+  if [ "$key" = "r" ]; then
+    flipRight
+  fi
+  if [ "$key" = "f" ]; then
+    fix
+  fi
+  if [ "$key" = "m" ]; then
+    getMenu
+    continue
+  fi
+  num=$num+1
+  if [ "$key" = "a" ]; then
+    if [ $((num%2)) -eq 0 ]; then
+      echo Enabled audio effects...
+      audio="true"
+      getMenu
+      continue
+    else
+      echo Disabled audio effects...
+      audio="false"
+      getMenu
+      continue
+    fi
+  fi
+
+
+
+  # main action to set wallpaper
+  url_pic=$BASE_PATH/backg_pics/$saveToDIR/$f
+  echo $url_pic
+  getMenu
+  gsettings set org.gnome.desktop.background picture-uri "$url_pic"
+  sleep 12s
+
+  
+  i=$((i+1))
+  if [ "$i" -ge "$arr_length" ]; then
+    echo final loop :  ${array[$i]};
+    i=0
+    echo final loop2:  ${array[$i]};
+ 
+  fi
+done
+
+# if online again, break saved images loop and proceed to top loop // loop 2 of 2
+if [ $status -eq 0 ]; then
+  echo break do 2 of 2
+  break
+fi
+done
+
+##fi
+
+done
+ 
